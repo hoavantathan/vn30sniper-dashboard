@@ -2,33 +2,33 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Sentinel V25.3 - Triple Macro Dashboard</title>
+    <title>Sentinel V25.4 - Pro Quantitative</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 15px; }
         .container { max-width: 1200px; margin: auto; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 20px; }
-        .macro-bar { display: flex; gap: 15px; background: #161b22; padding: 10px 15px; border-radius: 50px; border: 1px solid #30363d; font-size: 12px; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .on { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
-        .off { background: #f85149; box-shadow: 0 0 8px #f85149; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
+        .macro-bar { display: flex; gap: 12px; background: #161b22; padding: 8px 15px; border-radius: 50px; border: 1px solid #30363d; font-size: 11px; }
+        .dot { height: 7px; width: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .on { background: #3fb950; box-shadow: 0 0 5px #3fb950; }
+        .off { background: #f85149; box-shadow: 0 0 5px #f85149; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .card { background: #161b22; padding: 12px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
         .card h3 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
-        .card p { margin: 10px 0 0; font-size: 18px; font-weight: bold; color: #58a6ff; }
-        .chart-container { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 350px; }
+        .card p { margin: 8px 0 0; font-size: 18px; font-weight: bold; color: #58a6ff; }
+        .chart-container { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; height: 320px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ SENTINEL V25.3</h1>
+            <h1>🛡️ SENTINEL V25.4</h1>
             <div class="macro-bar">
-                <div><span id="fedDot" class="dot on"></span>FED Cut: <span id="fedOdds">--%</span></div>
-                <div><span id="trumpDot" class="dot on"></span>Trump: <span id="trumpOdds">--%</span></div>
-                <div><span id="bojDot" class="dot on"></span>BoJ Hike: <span id="bojOdds">--%</span></div>
-                <div style="font-weight:bold; margin-left:10px">Status: <span id="macroStatus">...</span></div>
+                <div><span id="fedDot" class="dot on"></span>FED: <span id="fedOdds">--</span></div>
+                <div><span id="trumpDot" class="dot on"></span>Trump: <span id="trumpOdds">--</span></div>
+                <div><span id="bojDot" class="dot on"></span>BoJ: <span id="bojOdds">--</span></div>
+                <div style="font-weight:bold; margin-left:5px"><span id="macroStatus">...</span></div>
             </div>
         </div>
         <div class="grid">
@@ -36,54 +36,42 @@
             <div class="card"><h3>Profit Factor</h3><p id="profitFactor">0.0</p></div>
             <div class="card"><h3>Mean (TB)</h3><p id="meanPnL">0.0</p></div>
             <div class="card"><h3>Std Dev</h3><p id="stdDev">0.0</p></div>
-            <div class="card"><h3>Kurtosis</h3><p id="kurtosis">0.0</p></div>
+            <div class="card"><h3>Max DD</h3><p id="maxDD">0.0</p></div>
         </div>
         <div class="chart-container"><canvas id="pnlChart"></canvas></div>
     </div>
     <script>
         async function fetchMacro() {
             try {
-                const cfgResponse = await fetch('config.json?v=' + Date.now());
-                const cfg = await cfgResponse.json();
-                const polyUrl = "https://clob.polymarket.com/markets/";
-                
-                const [f, t, b] = await Promise.all([
-                    fetch(polyUrl + cfg.poly_fed_cut_id).then(r => r.json()),
-                    fetch(polyUrl + cfg.poly_trump_pres_id).then(r => r.json()),
-                    fetch(polyUrl + cfg.poly_boj_hike_id).then(r => r.json())
+                const [cfg, web] = await Promise.all([
+                    fetch('config.json?v='+Date.now()).then(r => r.json()),
+                    fetch('macro_web.json?v='+Date.now()).then(r => r.json())
                 ]);
-
-                const fO = (f.current_odds * 100).toFixed(1);
-                const tO = (t.current_odds * 100).toFixed(1);
-                const bO = (b.current_odds * 100).toFixed(1);
-
-                document.getElementById('fedOdds').innerText = fO + '%';
-                document.getElementById('trumpOdds').innerText = tO + '%';
-                document.getElementById('bojOdds').innerText = bO + '%';
-
-                const isRiskOff = fO < cfg.fed_threshold || tO < cfg.trump_threshold || bO > cfg.boj_hike_threshold;
-                const statusEl = document.getElementById('macroStatus');
-                statusEl.innerText = isRiskOff ? "RISK-OFF" : "RISK-ON";
-                statusEl.style.color = isRiskOff ? "#f85149" : "#3fb950";
-                
-                document.getElementById('fedDot').className = fO < cfg.fed_threshold ? "dot off" : "dot on";
-                document.getElementById('trumpDot').className = tO < cfg.trump_threshold ? "dot off" : "dot on";
-                document.getElementById('bojDot').className = bO > cfg.boj_hike_threshold ? "dot off" : "dot on";
-            } catch (e) { console.error("Macro Fetch Error", e); }
+                document.getElementById('fedOdds').innerText = web.fed.toFixed(1) + '%';
+                document.getElementById('trumpOdds').innerText = web.trump.toFixed(1) + '%';
+                document.getElementById('bojOdds').innerText = web.boj.toFixed(1) + '%';
+                const isOff = web.fed < cfg.fed_threshold || web.trump < cfg.trump_threshold || web.boj > cfg.boj_hike_threshold;
+                const status = document.getElementById('macroStatus');
+                status.innerText = isOff ? "RISK-OFF" : "RISK-ON";
+                status.style.color = isOff ? "#f85149" : "#3fb950";
+                document.getElementById('fedDot').className = web.fed < cfg.fed_threshold ? "dot off" : "dot on";
+                document.getElementById('trumpDot').className = web.trump < cfg.trump_threshold ? "dot off" : "dot on";
+                document.getElementById('bojDot').className = web.boj > cfg.boj_hike_threshold ? "dot off" : "dot on";
+            } catch (e) { console.log("Waiting for macro_web.json..."); }
         }
 
         async function updateDashboard() {
             try {
-                const res = await fetch('trade_log.csv?v=' + Date.now());
+                const res = await fetch('trade_log.csv?v='+Date.now());
                 const csv = await res.text();
                 Papa.parse(csv, { header: true, dynamicTyping: true, complete: function(r) {
-                    const d = r.data.filter(x => x.PnL !== null && x.Time !== undefined);
+                    const d = r.data.filter(x => x.PnL !== null && !isNaN(x.PnL));
                     if (d.length > 0) {
                         const pnls = d.map(x => x.PnL);
-                        const wins = pnls.filter(x => x > 0).length;
-                        document.getElementById('winRate').innerText = ((wins/pnls.length)*100).toFixed(1) + '%';
                         const mean = pnls.reduce((a,b)=>a+b,0)/pnls.length;
                         document.getElementById('meanPnL').innerText = mean.toFixed(2);
+                        const wins = pnls.filter(x => x > 0).length;
+                        document.getElementById('winRate').innerText = ((wins/pnls.length)*100).toFixed(1) + '%';
                         renderChart(d.map(x=>x.Time), d.map(x=>x.Total_PnL));
                     }
                 }});
@@ -91,13 +79,16 @@
         }
 
         function renderChart(l, d) {
-            new Chart(document.getElementById('pnlChart'), {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            new Chart(ctx, {
                 type: 'line',
-                data: { labels: l, datasets: [{ label: 'PnL Lũy Kế', data: d, borderColor: '#3fb950', backgroundColor: 'rgba(63, 185, 80, 0.1)', fill: true, tension: 0.3 }] },
+                data: { labels: l, datasets: [{ label: 'PnL', data: d, borderColor: '#3fb950', backgroundColor: 'rgba(63, 185, 80, 0.1)', fill: true, tension: 0.3 }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
-        fetchMacro(); updateDashboard(); setInterval(fetchMacro, 60000);
+        fetchMacro(); updateDashboard(); setInterval(() => { fetchMacro(); updateDashboard(); }, 60000);
     </script>
 </body>
 </html>
+
+
