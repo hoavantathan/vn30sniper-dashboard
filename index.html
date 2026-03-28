@@ -6,14 +6,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
         .card h3 { margin: 0; font-size: 12px; color: #8b949e; text-transform: uppercase; }
-        .card p { margin: 10px 0 0; font-size: 18px; font-weight: bold; color: #58a6ff; }
-        .chart-container { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; }
+        .card p { margin: 10px 0 0; font-size: 20px; font-weight: bold; color: #58a6ff; }
+        .chart-container { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 400px; }
         .status-active { color: #3fb950; font-weight: bold; }
     </style>
 </head>
@@ -23,36 +23,31 @@
             <h1>🛡️ SENTINEL V25.1 PRO</h1>
             <div id="status">Trạng thái: <span class="status-active">● LIVE</span></div>
         </div>
-
         <div class="grid">
             <div class="card"><h3>Win Rate</h3><p id="winRate">0%</p></div>
             <div class="card"><h3>Profit Factor</h3><p id="profitFactor">0.0</p></div>
             <div class="card"><h3>Max Drawdown</h3><p id="maxDD">0.0</p></div>
-            <div class="card"><h3>Trung bình (Mean)</h3><p id="meanPnL">0.0</p></div>
-            <div class="card"><h3>Trung vị (Median)</h3><p id="medianPnL">0.0</p></div>
-            <div class="card"><h3>Độ lệch chuẩn (Std)</h3><p id="stdDev">0.0</p></div>
-            <div class="card"><h3>Độ cong (Kurtosis)</h3><p id="kurtosis">0.0</p></div>
+            <div class="card"><h3>Mean (TB)</h3><p id="meanPnL">0.0</p></div>
+            <div class="card"><h3>Median (TV)</h3><p id="medianPnL">0.0</p></div>
+            <div class="card"><h3>Std Dev</h3><p id="stdDev">0.0</p></div>
+            <div class="card"><h3>Kurtosis</h3><p id="kurtosis">0.0</p></div>
         </div>
-
-        <div class="chart-container">
-            <canvas id="pnlChart"></canvas>
-        </div>
+        <div class="chart-container"><canvas id="pnlChart"></canvas></div>
     </div>
-
     <script>
         async function updateDashboard() {
-            // Load file trade_log.csv từ cùng thư mục trên GitHub Pages
-            const response = await fetch('trade_log.csv');
-            const csvData = await response.text();
-            
-            Papa.parse(csvData, {
-                header: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    const data = results.data.filter(row => row.PnL !== null);
-                    processStats(data);
-                }
-            });
+            try {
+                const response = await fetch('trade_log.csv');
+                const csvData = await response.text();
+                Papa.parse(csvData, {
+                    header: true,
+                    dynamicTyping: true,
+                    complete: function(results) {
+                        const data = results.data.filter(row => row.PnL !== null && row.Time !== undefined);
+                        if (data.length > 0) processStats(data);
+                    }
+                });
+            } catch (e) { console.error("Chưa có dữ liệu trade_log.csv"); }
         }
 
         function processStats(trades) {
@@ -60,41 +55,18 @@
             const totalPnls = trades.map(t => t.Total_PnL);
             const times = trades.map(t => t.Time);
 
-            // 1. Tính Win Rate
             const wins = pnls.filter(p => p > 0).length;
-            document.getElementById('winRate').innerText = ((wins / pnls.length) * 100 || 0).toFixed(1) + '%';
-
-            // 2. Tính Profit Factor
-            const grossProfit = pnls.filter(p => p > 0).reduce((a, b) => a + b, 0);
-            const grossLoss = Math.abs(pnls.filter(p => p < 0).reduce((a, b) => a + b, 0));
-            document.getElementById('profitFactor').innerText = (grossProfit / (grossLoss || 1)).toFixed(2);
-
-            // 3. Max Drawdown
-            let peak = 0;
-            let maxDD = 0;
-            totalPnls.forEach(p => {
-                if (p > peak) peak = p;
-                let dd = peak - p;
-                if (dd > maxDD) maxDD = dd;
-            });
-            document.getElementById('maxDD').innerText = maxDD.toFixed(1);
-
-            // 4. Mean & Median
+            document.getElementById('winRate').innerText = ((wins / pnls.length) * 100).toFixed(1) + '%';
+            
             const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
-            const sortedPnls = [...pnls].sort((a, b) => a - b);
-            const median = sortedPnls[Math.floor(sortedPnls.length / 2)];
-            document.getElementById('meanPnL').innerText = (mean || 0).toFixed(2);
-            document.getElementById('medianPnL').innerText = (median || 0).toFixed(2);
+            document.getElementById('meanPnL').innerText = mean.toFixed(2);
 
-            // 5. Std Dev & Kurtosis
+            const sortedPnls = [...pnls].sort((a, b) => a - b);
+            document.getElementById('medianPnL').innerText = sortedPnls[Math.floor(sortedPnls.length / 2)].toFixed(2);
+
             const variance = pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pnls.length;
             const stdDev = Math.sqrt(variance);
-            document.getElementById('stdDev').innerText = (stdDev || 0).toFixed(2);
-            
-            // Tính Kurtosis (Độ cong vốn) đơn giản
-            const m4 = pnls.reduce((a, b) => a + Math.pow(b - mean, 4), 0) / pnls.length;
-            const kurtosis = (m4 / Math.pow(variance, 2)) - 3;
-            document.getElementById('kurtosis').innerText = (kurtosis || 0).toFixed(2);
+            document.getElementById('stdDev').innerText = stdDev.toFixed(2);
 
             renderChart(times, totalPnls);
         }
@@ -106,7 +78,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Lợi nhuận lũy kế (Điểm)',
+                        label: 'PnL Lũy Kế',
                         data: data,
                         borderColor: '#3fb950',
                         backgroundColor: 'rgba(63, 185, 80, 0.1)',
@@ -117,7 +89,6 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
-
         updateDashboard();
     </script>
 </body>
