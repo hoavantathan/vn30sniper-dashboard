@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sentinel V25.0 Live Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; text-align: center; padding: 20px; }
+        .container { width: 90%; max-width: 1000px; margin: auto; background: #161b22; padding: 30px; border-radius: 15px; border: 1px solid #30363d; }
+        .card { background: #21262d; padding: 15px; border-radius: 10px; display: inline-block; width: 25%; margin: 10px; border: 1px solid #30363d; }
+        .card h3 { margin: 0; font-size: 14px; color: #8b949e; }
+        .card p { margin: 10px 0 0; font-size: 20px; font-weight: bold; color: #58a6ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ SENTINEL V25.0 LIVE</h1>
+        <div class="card"><h3>Vốn</h3><p>50,000,000</p></div>
+        <div class="card"><h3>Trạng thái</h3><p style="color: #3fb950;">ACTIVE</p></div>
+        <div class="card"><h3>Mặt trận</h3><p>VN30F1M</p></div>
+        <canvas id="pnlChart"></canvas>
+    </div>
+    <script>
+        const ctx = document.getElementById('pnlChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: { labels: ['Đang chờ phiên Thứ 2...'], datasets: [{ label: 'PnL (Điểm)', data: [0], borderColor: '#3fb950', fill: true, tension: 0.4 }] }
+        });
+    </script>
+</body>
+</html>
