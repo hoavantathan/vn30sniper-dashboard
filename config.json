@@ -1,4 +1,6 @@
 {
+    "dnse_api_key": "eyJvcmciOiJkbnNlIiwiaWQiOiIwMjkzMDgwODc5Yzk0ODllYTgyNDI1ZTY0YWU3MDIxZSIsImgiOiJtdXJtdXIxMjgifQ==",
+    "dnse_api_secret": "UAGUrZ9gUdYFIDkyD9-pXyWrOD2PQ7POPZak1ZNekrHRJ1BOpch5NGu_4RraeBfoIBf8qMbDpUcFFyGjOMS4Ww",
     "poly_fed_cut_id": "0x6378e63013ba0c0e788079532822a9497d519391-0",
     "poly_trump_pres_id": "0xfc1a6792b04c8fb5cc86a60c6d70ae4c47864115-0",
     "poly_boj_hike_id": "0x40f6c2e7428f522851480f2c42c388656f4d3600-0",
@@ -6,3 +8,4 @@
     "trump_threshold": 50.0,
     "boj_hike_threshold": 30.0
 }
+
