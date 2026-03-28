@@ -2,135 +2,95 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Sentinel V25.2 - Global Macro Dashboard</title>
+    <title>Sentinel V25.3 - Triple Macro Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 20px; }
-        
-        /* Macro Bar Style */
-        .macro-bar { display: flex; gap: 20px; background: #161b22; padding: 10px 20px; border-radius: 50px; border: 1px solid #30363d; margin-bottom: 20px; font-size: 13px; }
-        .macro-item { display: flex; align-items: center; gap: 8px; }
-        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; }
-        .on { background-color: #3fb950; box-shadow: 0 0 8px #3fb950; }
-        .off { background-color: #f85149; box-shadow: 0 0 8px #f85149; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .macro-bar { display: flex; gap: 15px; background: #161b22; padding: 10px 15px; border-radius: 50px; border: 1px solid #30363d; font-size: 12px; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .on { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
+        .off { background: #f85149; box-shadow: 0 0 8px #f85149; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .card { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
-        .card h3 { margin: 0; font-size: 11px; color: #8b949e; text-transform: uppercase; }
+        .card h3 { margin: 0; font-size: 10px; color: #8b949e; text-transform: uppercase; }
         .card p { margin: 10px 0 0; font-size: 18px; font-weight: bold; color: #58a6ff; }
-        .chart-container { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 400px; }
+        .chart-container { background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 350px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ SENTINEL V25.2</h1>
-            <div class="macro-bar" id="macroBar">
-                <div class="macro-item"><span class="dot on"></span> FED Cut: <span id="fedOdds">--%</span></div>
-                <div class="macro-item"><span class="dot on"></span> Trump: <span id="trumpOdds">--%</span></div>
-                <div class="macro-item">Sentiment: <span id="macroStatus" style="font-weight:bold">LOADING...</span></div>
+            <h1>🛡️ SENTINEL V25.3</h1>
+            <div class="macro-bar">
+                <div><span id="fedDot" class="dot on"></span>FED Cut: <span id="fedOdds">--%</span></div>
+                <div><span id="trumpDot" class="dot on"></span>Trump: <span id="trumpOdds">--%</span></div>
+                <div><span id="bojDot" class="dot on"></span>BoJ Hike: <span id="bojOdds">--%</span></div>
+                <div style="font-weight:bold; margin-left:10px">Status: <span id="macroStatus">--</span></div>
             </div>
         </div>
-
         <div class="grid">
             <div class="card"><h3>Win Rate</h3><p id="winRate">0%</p></div>
             <div class="card"><h3>Profit Factor</h3><p id="profitFactor">0.0</p></div>
-            <div class="card"><h3>Max Drawdown</h3><p id="maxDD">0.0</p></div>
-            <div class="card"><h3>Mean (TB)</h3><p id="meanPnL">0.0</p></div>
-            <div class="card"><h3>Median (TV)</h3><p id="medianPnL">0.0</p></div>
+            <div class="card"><h3>Mean</h3><p id="meanPnL">0.0</p></div>
             <div class="card"><h3>Std Dev</h3><p id="stdDev">0.0</p></div>
             <div class="card"><h3>Kurtosis</h3><p id="kurtosis">0.0</p></div>
         </div>
-
         <div class="chart-container"><canvas id="pnlChart"></canvas></div>
     </div>
-
     <script>
         async function fetchMacro() {
             try {
-                const cfgRes = await fetch('config.json');
-                const cfg = await cfgRes.json();
-                
+                const cfg = await fetch('config.json').then(r => r.json());
                 const polyUrl = "https://clob.polymarket.com/markets/";
-                
-                const [resFed, resTrump] = await Promise.all([
+                const [f, t, b] = await Promise.all([
                     fetch(polyUrl + cfg.poly_fed_cut_id).then(r => r.json()),
-                    fetch(polyUrl + cfg.poly_trump_pres_id).then(r => r.json())
+                    fetch(polyUrl + cfg.poly_trump_pres_id).then(r => r.json()),
+                    fetch(polyUrl + cfg.poly_boj_hike_id).then(r => r.json())
                 ]);
+                const fO = (f.current_odds*100).toFixed(1), tO = (t.current_odds*100).toFixed(1), bO = (b.current_odds*100).toFixed(1);
+                
+                document.getElementById('fedOdds').innerText = fO + '%';
+                document.getElementById('trumpOdds').innerText = tO + '%';
+                document.getElementById('bojOdds').innerText = bO + '%';
 
-                const fedOdds = (resFed.current_odds * 100).toFixed(1);
-                const trumpOdds = (resTrump.current_odds * 100).toFixed(1);
-
-                document.getElementById('fedOdds').innerText = fedOdds + '%';
-                document.getElementById('trumpOdds').innerText = trumpOdds + '%';
-
+                const isRiskOff = fO < cfg.fed_threshold || tO < cfg.trump_threshold || bO > cfg.boj_hike_threshold;
                 const statusEl = document.getElementById('macroStatus');
-                if (fedOdds < cfg.fed_threshold || trumpOdds < cfg.trump_threshold) {
-                    statusEl.innerText = "RISK-OFF";
-                    statusEl.style.color = "#f85149";
-                } else {
-                    statusEl.innerText = "RISK-ON";
-                    statusEl.style.color = "#3fb950";
-                }
-            } catch (e) { console.error("Macro Fetch Error"); }
+                statusEl.innerText = isRiskOff ? "RISK-OFF" : "RISK-ON";
+                statusEl.style.color = isRiskOff ? "#f85149" : "#3fb950";
+                
+                document.getElementById('fedDot').className = fO < cfg.fed_threshold ? "dot off" : "dot on";
+                document.getElementById('trumpDot').className = tO < cfg.trump_threshold ? "dot off" : "dot on";
+                document.getElementById('bojDot').className = bO > cfg.boj_hike_threshold ? "dot off" : "dot on";
+            } catch (e) { console.error(e); }
         }
 
         async function updateDashboard() {
-            try {
-                const response = await fetch('trade_log.csv');
-                const csvData = await response.text();
-                Papa.parse(csvData, {
-                    header: true, dynamicTyping: true,
-                    complete: function(results) {
-                        const data = results.data.filter(row => row.PnL !== null && row.Time !== undefined);
-                        if (data.length > 0) processStats(data);
-                    }
-                });
-            } catch (e) { }
+            const res = await fetch('trade_log.csv');
+            const csv = await res.text();
+            Papa.parse(csv, { header: true, dynamicTyping: true, complete: function(r) {
+                const d = r.data.filter(x => x.PnL !== null);
+                if (d.length > 0) {
+                    const pnls = d.map(x => x.PnL);
+                    const wins = pnls.filter(x => x > 0).length;
+                    document.getElementById('winRate').innerText = ((wins/pnls.length)*100).toFixed(1) + '%';
+                    const mean = pnls.reduce((a,b)=>a+b,0)/pnls.length;
+                    document.getElementById('meanPnL').innerText = mean.toFixed(2);
+                    renderChart(d.map(x=>x.Time), d.map(x=>x.Total_PnL));
+                }
+            }});
         }
 
-        function processStats(trades) {
-            const pnls = trades.map(t => t.PnL);
-            const totalPnls = trades.map(t => t.Total_PnL);
-            const times = trades.map(t => t.Time);
-
-            const wins = pnls.filter(p => p > 0).length;
-            document.getElementById('winRate').innerText = ((wins / pnls.length) * 100).toFixed(1) + '%';
-            
-            const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
-            document.getElementById('meanPnL').innerText = mean.toFixed(2);
-            
-            const variance = pnls.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / pnls.length;
-            document.getElementById('stdDev').innerText = Math.sqrt(variance).toFixed(2);
-
-            renderChart(times, totalPnls);
-        }
-
-        function renderChart(labels, data) {
-            const ctx = document.getElementById('pnlChart').getContext('2d');
-            new Chart(ctx, {
+        function renderChart(l, d) {
+            new Chart(document.getElementById('pnlChart'), {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'PnL Lũy Kế',
-                        data: data,
-                        borderColor: '#3fb950',
-                        backgroundColor: 'rgba(63, 185, 80, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
+                data: { labels: l, datasets: [{ label: 'PnL', data: d, borderColor: '#3fb950', fill: true, tension: 0.3 }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
         }
-
-        fetchMacro();
-        updateDashboard();
-        setInterval(fetchMacro, 60000); // Tự động cập nhật Macro mỗi phút
+        fetchMacro(); updateDashboard(); setInterval(fetchMacro, 60000);
     </script>
 </body>
 </html>

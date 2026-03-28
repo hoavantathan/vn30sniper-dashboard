@@ -1,6 +1,8 @@
 {
     "poly_fed_cut_id": "0x6378e63013ba0c0e788079532822a9497d519391-0",
     "poly_trump_pres_id": "0xfc1a6792b04c8fb5cc86a60c6d70ae4c47864115-0",
+    "poly_boj_hike_id": "0x40f6c2e7428f522851480f2c42c388656f4d3600-0",
     "fed_threshold": 40.0,
-    "trump_threshold": 50.0
+    "trump_threshold": 50.0,
+    "boj_hike_threshold": 30.0
 }
